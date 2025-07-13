@@ -111,5 +111,20 @@ class FirebaseDB {
         }
     }
 
+    suspend fun deleteUserNotes(username: String, notes: Set<String>): Boolean {
+        return try {
+            val notesRef = db.collection("usernotes").document(username).collection("notes")
+
+            for (noteid in notes) {
+                notesRef.document(noteid).delete().await()
+            }
+
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
 
 }

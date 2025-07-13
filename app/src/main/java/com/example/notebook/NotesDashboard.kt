@@ -1,7 +1,9 @@
 package com.example.notebook
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -12,10 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -37,7 +41,7 @@ import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NotesDashboard(
     modifier: Modifier = Modifier,
@@ -56,20 +60,20 @@ fun NotesDashboard(
 
     val usernotesfav = remember { mutableStateOf(false) }
 
-    LaunchedEffect(currentUser.value?.userName) {
+    LaunchedEffect(currentUser.value?.userName,usernotesfav.value) {
         currentUser.value?.userName?.let { username ->
             isLoading.value = true
-            usernotes.value = db.getUserNotes(username) ?: emptyList()
+            usernotes.value = if (usernotesfav.value) {
+                db.getUserNotesFav(username) ?: emptyList()
+            } else {
+                db.getUserNotes(username) ?: emptyList()
+            }
             isLoading.value = false
         }
     }
-    LaunchedEffect(usernotesfav.value) {
-        currentUser.value?.userName?.let { username ->
-            isLoading.value = true
-            usernotes.value = db.getUserNotesFav(username) ?: emptyList()
-            isLoading.value = false
-        }
-    }
+
+    var selectionMode = remember { mutableStateOf(false) }
+    var selectedNotes = remember { mutableStateOf(setOf<String>()) }
 
 
     Scaffold(
@@ -78,23 +82,51 @@ fun NotesDashboard(
             .background(MaterialTheme.colorScheme.background),
         topBar = {
             TopAppBar(title = {
-                Text("${currentUser.value?.userName}'s Notes")
+                if (!selectionMode.value) Text("${currentUser.value?.userName}'s Notes")
+            }, navigationIcon = {
+                if (selectionMode.value) Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .clickable(onClick = {
+                            selectionMode.value = false
+                            selectedNotes.value = setOf<String>()
+                        })
+                )
             }, actions = {
-                Icon(
+                if (!selectionMode.value) Icon(
                     imageVector = Icons.Filled.Favorite,
                     contentDescription = "Favorites",
                     tint = if (usernotesfav.value) Color.Red else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
                         .padding(16.dp)
                         .clickable(onClick = {
-                            usernotesfav.value = !usernotesfav.value
+                            usernotesfav.value=!usernotesfav.value
                         })
-
                 )
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete",
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .clickable(onClick = {
+                            coroutineScope.launch {
+                                val username = currentUser.value?.userName ?: return@launch
+                                val result = db.deleteUserNotes(
+                                    username,
+                                    selectedNotes.value
+                                )
+                                if (result) {
+                                    usernotes.value =
+                                        db.getUserNotes(currentUser.value?.userName.toString())
+                                            ?: emptyList()
+                                }
+                                selectionMode.value = false
+                                selectedNotes.value = emptySet<String>()
+                            }
+
+                        })
                 )
             })
         },
@@ -123,14 +155,46 @@ fun NotesDashboard(
                 LazyColumn(modifier = modifier.padding(values)) {
                     items(usernotes.value.size) { index ->
                         NoteCard(
-                            note = usernotes.value[index], modifier = Modifier.clickable(
-                            onClick = {
-                                noteViewModel.currentNote = usernotes.value[index]
+                            note = usernotes.value[index],
+                            modifier = Modifier.combinedClickable(onClick = {
+                                if (!selectionMode.value) {
+                                    noteViewModel.currentNote = usernotes.value[index]
+                                    val updatedList = usernotes.value.toMutableList()
+                                    val currentNote = updatedList[index]
+                                    val updatedNote = currentNote.copy(
+                                        noteid = currentNote.noteid,
+                                        recentAccess = LocalDateTime.now().toString()
+                                    )
+                                    updatedList[index] = updatedNote
+                                    usernotes.value = updatedList
+                                    coroutineScope.launch {
+                                        db.saveOrUpdateUserNote(
+                                            currentUser.value?.userName ?: "", updatedNote
+                                        )
+                                    }
+                                    navHostController.navigate(Screen.NoteCreate.route)
+                                } else {
+                                    selectedNotes.value = selectedNotes.value.toMutableSet().apply {
+                                        if (contains(usernotes.value[index].noteid)) remove(
+                                            usernotes.value[index].noteid
+                                        ) else add(usernotes.value[index].noteid)
+                                    }
+                                    if (selectedNotes.value.isEmpty()) {
+                                        selectionMode.value = false
+                                        selectedNotes.value = mutableSetOf<String>()
+                                    }
+                                }
+                            }, onLongClick = {
+                                selectionMode.value = true
+                                selectedNotes.value =
+                                    selectedNotes.value + usernotes.value[index].noteid
+
+                            }),
+                            onFavoriteToggle = {
                                 val updatedList = usernotes.value.toMutableList()
                                 val currentNote = updatedList[index]
                                 val updatedNote = currentNote.copy(
-                                    noteid = currentNote.noteid,
-                                    recentAccess = LocalDateTime.now().toString()
+                                    liked = !currentNote.liked, noteid = currentNote.noteid
                                 )
                                 updatedList[index] = updatedNote
                                 usernotes.value = updatedList
@@ -139,21 +203,10 @@ fun NotesDashboard(
                                         currentUser.value?.userName ?: "", updatedNote
                                     )
                                 }
-                                navHostController.navigate(Screen.NoteCreate.route)
-                            }), onFavoriteToggle = {
-                            val updatedList = usernotes.value.toMutableList()
-                            val currentNote = updatedList[index]
-                            val updatedNote = currentNote.copy(
-                                isLiked = !currentNote.isLiked, noteid = currentNote.noteid
-                            )
-                            updatedList[index] = updatedNote
-                            usernotes.value = updatedList
-                            coroutineScope.launch {
-                                db.saveOrUpdateUserNote(
-                                    currentUser.value?.userName ?: "", updatedNote
-                                )
-                            }
-                        })
+                            },
+                            isSelected = selectedNotes.value.contains(usernotes.value[index].noteid),
+                            isSelectionMode = selectionMode.value
+                        )
                     }
                 }
             }
@@ -162,12 +215,21 @@ fun NotesDashboard(
 }
 
 @Composable
-fun NoteCard(modifier: Modifier = Modifier, note: Note, onFavoriteToggle: () -> Unit) {
+fun NoteCard(
+    modifier: Modifier = Modifier,
+    note: Note,
+    onFavoriteToggle: () -> Unit,
+    isSelected: Boolean,
+    isSelectionMode: Boolean
+) {
     Card(
         modifier = modifier
             .fillMaxWidth()
             .height(172.dp)
             .padding(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected && isSelectionMode) MaterialTheme.colorScheme.primary else Color.Unspecified
+        ),
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
@@ -189,7 +251,7 @@ fun NoteCard(modifier: Modifier = Modifier, note: Note, onFavoriteToggle: () -> 
                 modifier = Modifier.clickable {
                     onFavoriteToggle()
                 },
-                tint = if (note.isLiked) Color.Red else MaterialTheme.colorScheme.onSurface
+                tint = if (note.liked) Color.Red else MaterialTheme.colorScheme.onSurface
             )
         }
         Text(

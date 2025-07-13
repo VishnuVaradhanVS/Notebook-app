@@ -49,7 +49,7 @@ fun CreateNotes(
         mutableStateOf(noteViewModel.currentNote.noteDescription)
     }
     val favorite = rememberSaveable {
-        mutableStateOf(noteViewModel.currentNote.isLiked)
+        mutableStateOf(noteViewModel.currentNote.liked)
     }
     val currentuser = rememberSaveable {
         mutableStateOf(userViewModel.currentUserName)
@@ -96,7 +96,7 @@ fun CreateNotes(
                                 val db = FirebaseDB()
                                 noteViewModel.currentNote.noteTitle = title.value
                                 noteViewModel.currentNote.noteDescription = description.value
-                                noteViewModel.currentNote.isLiked = favorite.value
+                                noteViewModel.currentNote.liked = favorite.value
                                 noteViewModel.currentNote.recentAccess =
                                     LocalDateTime.now().toString()
                                 coroutineScope.launch {
