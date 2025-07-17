@@ -28,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.example.notebook.ui.theme.GreenContainer
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
@@ -83,7 +85,11 @@ fun NotesDashboard(
         topBar = {
             TopAppBar(title = {
                 if (!selectionMode.value) Text("${currentUser.value?.userName}'s Notes")
-            }, navigationIcon = {
+            },colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                titleContentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+                navigationIcon = {
                 if (selectionMode.value) Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
@@ -108,6 +114,7 @@ fun NotesDashboard(
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
                         .padding(16.dp)
                         .clickable(onClick = {
@@ -134,7 +141,7 @@ fun NotesDashboard(
             FloatingActionButton(onClick = {
                 noteViewModel.currentNote = Note()
                 navHostController.navigate(Screen.NoteCreate.route)
-            }) {
+            }, containerColor = MaterialTheme.colorScheme.primary) {
                 Icon(imageVector = Icons.Filled.Add, contentDescription = "Add new note")
             }
         }) { values ->
@@ -228,7 +235,7 @@ fun NoteCard(
             .height(172.dp)
             .padding(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected && isSelectionMode) MaterialTheme.colorScheme.primary else Color.Unspecified
+            containerColor = if (isSelected && isSelectionMode) MaterialTheme.colorScheme.primary else GreenContainer
         ),
         shape = RoundedCornerShape(16.dp)
     ) {

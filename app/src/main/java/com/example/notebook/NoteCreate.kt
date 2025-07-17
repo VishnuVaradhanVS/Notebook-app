@@ -65,7 +65,7 @@ fun CreateNotes(
                 .background(MaterialTheme.colorScheme.background),
             topBar = {
                 TopAppBar(title = {
-                    Text("My Notes")
+                    Text("My Notes", color = MaterialTheme.colorScheme.primary)
                 }, navigationIcon = {
                     Icon(
                         imageVector = Icons.AutoMirrored.Default.ArrowBack,
@@ -90,6 +90,7 @@ fun CreateNotes(
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = "Save",
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier
                             .padding(16.dp)
                             .clickable(onClick = {
