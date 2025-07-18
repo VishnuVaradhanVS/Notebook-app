@@ -83,6 +83,7 @@ class FirebaseDB {
                     note.noteid = doc.id
                     notes.add(note)
                 }
+                print(note?.noteid)
             }
             notes
         } catch (e: Exception) {

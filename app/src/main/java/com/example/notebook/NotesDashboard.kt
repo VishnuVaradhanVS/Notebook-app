@@ -39,7 +39,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.notebook.ui.theme.GreenContainer
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
@@ -235,7 +234,7 @@ fun NoteCard(
             .height(172.dp)
             .padding(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected && isSelectionMode) MaterialTheme.colorScheme.primary else GreenContainer
+            containerColor = if (isSelected && isSelectionMode) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer
         ),
         shape = RoundedCornerShape(16.dp)
     ) {

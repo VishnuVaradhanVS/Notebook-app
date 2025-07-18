@@ -18,4 +18,6 @@ val GreenTertiary = Color(0xFF66BB6A)
 val OnPrimaryLight = Color.White
 val OnPrimaryDark = Color.White
 
-val GreenContainer = Color(0xFF374D3A)
+val GreenContainerDark = Color(0xFF374D3A)
+val GreenContainerLight = Color(0xFFD2F9D9)
+
